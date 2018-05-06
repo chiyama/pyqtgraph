@@ -53,7 +53,7 @@ class Flowchart(Node):
         
         
         self.inputWasSet = False  ## flag allows detection of changes in the absence of input change.
-        self._nodes = {}
+        self._nodes = []
         self.nextZVal = 10
         #self.connects = []
         #self._chartGraphicsItem = FlowchartGraphicsItem(self)
@@ -169,10 +169,11 @@ class Flowchart(Node):
         """Create a new Node and add it to this flowchart.
         """
         if name is None:
+            names = [n.name for n in self._nodes]
             n = 0
             while True:
                 name = "%s.%d" % (nodeType, n)
-                if name not in self._nodes:
+                if name not in names:
                     break
                 n += 1
                 
@@ -194,7 +195,7 @@ class Flowchart(Node):
         self.nextZVal += 1
         self.viewBox.addItem(item)
         item.moveBy(*pos)
-        self._nodes[name] = node
+        self._nodes.append(node)
         if node is not self.inputNode and node is not self.outputNode:
             self.widget().addNode(node) 
         node.sigClosed.connect(self.nodeClosed)
@@ -208,7 +209,7 @@ class Flowchart(Node):
         node.close()
         
     def nodeClosed(self, node):
-        del self._nodes[node.name()]
+        self._nodes.remove(node)
         self.widget().removeNode(node)
         for signal in ['sigClosed', 'sigRenamed', 'sigOutputChanged']:
             try:
@@ -218,8 +219,6 @@ class Flowchart(Node):
         self.sigChartChanged.emit(self, 'remove', node)
         
     def nodeRenamed(self, node, oldName):
-        del self._nodes[oldName]
-        self._nodes[node.name()] = node
         self.widget().nodeRenamed(node, oldName)
         self.sigChartChanged.emit(self, 'rename', node)
         
@@ -326,7 +325,7 @@ class Flowchart(Node):
         ## first collect list of nodes/terminals and their dependencies
         deps = {}
         tdeps = {}   ## {terminal: [nodes that depend on terminal]}
-        for name, node in self._nodes.items():
+        for node in self._nodes:
             deps[node] = node.dependentNodes()
             for t in node.outputs().values():
                 tdeps[t] = t.dependentNodes()
@@ -374,7 +373,7 @@ class Flowchart(Node):
         self.processing = True
         try:
             deps = {}
-            for name, node in self._nodes.items():
+            for node in self._nodes:
                 deps[node] = []
                 for t in node.outputs().values():
                     deps[node].extend(t.dependentNodes())
@@ -433,7 +432,7 @@ class Flowchart(Node):
 
     def listConnections(self):
         conn = set()
-        for n in self._nodes.values():
+        for n in self._nodes:
             terms = n.outputs()
             for n, t in terms.items():
                 for c in t.connections():
@@ -447,12 +446,12 @@ class Flowchart(Node):
         state['nodes'] = []
         state['connects'] = []
         
-        for name, node in self._nodes.items():
+        for node in self._nodes:
             cls = type(node)
             if hasattr(cls, 'nodeName'):
                 clsName = cls.nodeName
                 pos = node.graphicsItem().pos()
-                ns = {'class': clsName, 'name': name, 'pos': (pos.x(), pos.y()), 'state': node.saveState()}
+                ns = {'class': clsName, 'name': node.name, 'pos': (pos.x(), pos.y()), 'state': node.saveState()}
                 state['nodes'].append(ns)
             
         conn = self.listConnections()
@@ -475,8 +474,10 @@ class Flowchart(Node):
             nodes = state['nodes']
             nodes.sort(key=lambda a: a['pos'][0])
             for n in nodes:
-                if n['name'] in self._nodes:
-                    self._nodes[n['name']].restoreState(n['state'])
+                # __FIXME__ if there exists same name node, this code doesn't work correctly.
+                _nodes = [n for n in self._nodes if n.name == n['name']]
+                if len(_nodes) != 0:
+                    _nodes[0].restoreState(n['state'])
                     continue
                 try:
                     node = self.createNode(n['class'], name=n['name'])
@@ -489,11 +490,20 @@ class Flowchart(Node):
                 
             #self.restoreTerminals(state['terminals'])
             for n1, t1, n2, t2 in state['connects']:
+                # __FIXME__ if there exists same name node, this code doesn't work correctly.
+                src = None
+                dest = None
+                for n in self._nodes:
+                    if n.name == n1:
+                        src = n
+                    if n.name == n2:
+                        dest = n
+
                 try:
-                    self.connectTerminals(self._nodes[n1][t1], self._nodes[n2][t2])
+                    self.connectTerminals(src[t1], dest[t2])
                 except:
-                    print(self._nodes[n1].terminals)
-                    print(self._nodes[n2].terminals)
+                    print(src.terminals)
+                    print(dest.terminals)
                     printExc("Error connecting terminals %s.%s - %s.%s:" % (n1, t1, n2, t2))
                 
         finally:
@@ -542,7 +552,7 @@ class Flowchart(Node):
     def clear(self):
         """Remove all nodes from this flowchart except the original input/output nodes.
         """
-        for n in list(self._nodes.values()):
+        for n in list(self._nodes):
             if n is self.inputNode or n is self.outputNode:
                 continue
             n.close()  ## calls self.nodeClosed(n) by signal
