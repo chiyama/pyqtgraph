@@ -172,7 +172,7 @@ class Flowchart(Node):
         """Create a new Node and add it to this flowchart.
         """
         if name is None:
-            names = [n.name for n in self._nodes]
+            names = [n.name() for n in self._nodes]
             n = 0
             while True:
                 name = "%s.%d" % (nodeType, n)
@@ -454,7 +454,7 @@ class Flowchart(Node):
             if hasattr(cls, 'nodeName'):
                 clsName = cls.nodeName
                 pos = node.graphicsItem().pos()
-                ns = {'class': clsName, 'name': node.name, 'pos': (pos.x(), pos.y()), 'state': node.saveState()}
+                ns = {'class': clsName, 'name': node.name(), 'pos': (pos.x(), pos.y()), 'state': node.saveState()}
                 state['nodes'].append(ns)
             
         conn = self.listConnections()
@@ -478,7 +478,7 @@ class Flowchart(Node):
             nodes.sort(key=lambda a: a['pos'][0])
             for n in nodes:
                 # __FIXME__ if there exists same name node, this code doesn't work correctly.
-                _nodes = [n for n in self._nodes if n.name == n['name']]
+                _nodes = [_n for _n in self._nodes if _n.name() == n['name']]
                 if len(_nodes) != 0:
                     _nodes[0].restoreState(n['state'])
                     continue
@@ -497,9 +497,9 @@ class Flowchart(Node):
                 src = None
                 dest = None
                 for n in self._nodes:
-                    if n.name == n1:
+                    if n.name() == n1:
                         src = n
-                    if n.name == n2:
+                    if n.name() == n2:
                         dest = n
 
                 try:
