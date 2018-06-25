@@ -768,6 +768,11 @@ class FlowchartCtrlWidget(QtGui.QWidget):
         self.chartWidget.clear()
         
     def select(self, node):
+        # _FIXME_ If user select Input/Output node that always created in Flowchart,
+        # Flowchart cause error. Because these nodes are not in self.items.
+        if node not in self.items.keys():
+            return
+
         item = self.items[node]
         self.ui.ctrlList.setCurrentItem(item)
 
