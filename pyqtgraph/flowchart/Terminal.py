@@ -297,7 +297,7 @@ class TerminalGraphicsItem(GraphicsObject):
             QtGui.QGraphicsTextItem.keyPressEvent(self.label, ev)
         
     def labelChanged(self):
-        newName = str(self.label.toPlainText())
+        newName = unicode(self.label.toPlainText())
         if newName != self.term.name():
             self.term.rename(newName)
 

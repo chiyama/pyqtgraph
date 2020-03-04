@@ -443,10 +443,10 @@ class NodeGraphicsItem(GraphicsObject):
         GraphicsObject.__init__(self)
         #QObjectWorkaround.__init__(self)
         
-        #self.shadow = QtGui.QGraphicsDropShadowEffect()
-        #self.shadow.setOffset(5,5)
-        #self.shadow.setBlurRadius(10)
-        #self.setGraphicsEffect(self.shadow)
+        self.shadow = QtGui.QGraphicsDropShadowEffect()
+        self.shadow.setOffset(5,5)
+        self.shadow.setBlurRadius(10)
+        self.setGraphicsEffect(self.shadow)
         
         self.pen = fn.mkPen(0,0,0)
         self.selectPen = fn.mkPen(200,200,200,width=2)
@@ -492,7 +492,7 @@ class NodeGraphicsItem(GraphicsObject):
             QtGui.QGraphicsTextItem.keyPressEvent(self.nameItem, ev)
         
     def labelChanged(self):
-        newName = str(self.nameItem.toPlainText())
+        newName = unicode(self.nameItem.toPlainText())
         if newName != self.node.name():
             self.node.rename(newName)
             
